@@ -1,0 +1,26 @@
+# ── Google Cloud ──────────────────────────────────────────────
+google-cloud-documentai>=2.20.0
+google-cloud-storage>=2.10.0
+
+# ── OpenAI ────────────────────────────────────────────────────
+openai>=1.30.0
+
+# ── FastAPI stack ─────────────────────────────────────────────
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9
+
+# ── Data validation ───────────────────────────────────────────
+pydantic>=2.7.0
+
+# ── Environment ───────────────────────────────────────────────
+python-dotenv>=1.0.0requests>=2.31.0
+python-dateutil>=2.8.2
+# ── UI ────────────────────────────────────────────────────────
+streamlit>=1.35.0
+
+# ── Utilities ─────────────────────────────────────────────────
+python-magic>=0.4.27
+Pillow>=10.3.0
+
+aiofiles>=23.2.0
