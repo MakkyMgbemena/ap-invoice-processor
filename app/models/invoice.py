@@ -63,6 +63,10 @@ class Timestamps(BaseModel):
     uploaded:  datetime           = Field(default_factory=lambda: datetime.now(timezone.utc))
     ocr_start: Optional[datetime] = None
     ocr_end:   Optional[datetime] = None
+    extraction_start:  Optional[datetime] = None
+    extraction_end:    Optional[datetime] = None
+    validation_start:  Optional[datetime] = None
+    validation_end:    Optional[datetime] = None
     extracted: Optional[datetime] = None
     completed: Optional[datetime] = None
 
