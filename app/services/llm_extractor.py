@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 def _openai_client() -> OpenAI:
     if not OPENAI_API_KEY:
         raise ValueError("OPENAI_API_KEY must be set before calling the LLM extractor.")
-    return OpenAI(api_key=OPENAI_API_KEY)
+    return OpenAI(api_key=OPENAI_API_KEY, max_retries=6, timeout=30.0)
 
 # ── Regex patterns ─────────────────────────────────────────────────────────────
 
@@ -164,8 +164,8 @@ Fields to extract:
 OCR TEXT:
 {raw_text[:4000]}
 """
-# TODO: upgrade to structured outputs (client.beta.chat.completions.parse)
-#       when OpenAI schema validation is needed
+    # TODO: upgrade to structured outputs (client.beta.chat.completions.parse)
+    #       when OpenAI schema validation is needed
     try:
         response = client.chat.completions.create(
             model=OPENAI_MODEL,
@@ -175,7 +175,7 @@ OCR TEXT:
             timeout=60
         )
         extracted = json.loads(response.choices[0].message.content)
-        logger.info(f"[LLM] GPT-4o extraction complete — fields: {list(extracted.keys())}")
+        logger.info(f"[LLM] GPT-4o extraction complete - fields: {list(extracted.keys())}")
 
         # Merge: regex wins where it already has a value
         for key, value in extracted.items():
@@ -198,36 +198,30 @@ OCR TEXT:
 # ── Main entry point ───────────────────────────────────────────────────────────
 
 def extract_invoice_fields(invoice: Invoice) -> Invoice:
-    """
-    Run two-stage extraction on invoice.recognized_text.
-    Updates the Invoice model in place and returns it.
-    """
-    if not invoice.recognized_text:
-        raise ValueError(f"[Extractor] No recognized_text on invoice {invoice.document_id}")
+    raw_text = invoice.recognized_text or ""
+    if not raw_text:
+        return invoice
 
     invoice.status = ProcessingStatus.EXTRACTING
-    logger.info(f"[Extractor] Starting extraction — {invoice.document_id}")
+    invoice.timestamps.extraction_start = datetime.now(timezone.utc)
 
-    # Stage 1 — Regex
-    fields = parse_with_regex(invoice.recognized_text)
+    # Fast-path regex
+    partial = parse_with_regex(raw_text)
 
-    # Stage 2 — LLM fallback if needed
-    fields = parse_with_llm(invoice.recognized_text, fields)
+    # Fallback LLM
+    final_data = parse_with_llm(raw_text, partial)
 
-    # Apply to Invoice model
-    invoice.vendor         = fields.get("vendor")
-    invoice.invoice_number = fields.get("invoice_number")
-    invoice.invoice_date   = fields.get("invoice_date")
-    invoice.due_date       = fields.get("due_date")
-    invoice.subtotal       = fields.get("subtotal")
-    invoice.tax            = fields.get("tax")
-    invoice.total_amount   = fields.get("total_amount")
-    invoice.currency       = fields.get("currency") or "USD"
-    invoice.line_items     = fields.get("line_items") or []
-    invoice.timestamps.extracted = datetime.now(timezone.utc)
+    # Map back to model
+    invoice.vendor         = final_data.get("vendor")
+    invoice.invoice_number = final_data.get("invoice_number")
+    invoice.invoice_date   = final_data.get("invoice_date")
+    invoice.due_date       = final_data.get("due_date")
+    invoice.subtotal       = _to_decimal(final_data.get("subtotal"))
+    invoice.tax            = _to_decimal(final_data.get("tax"))
+    invoice.total_amount   = _to_decimal(final_data.get("total_amount"))
+    invoice.currency       = final_data.get("currency")
+    invoice.line_items     = final_data.get("line_items") or []
 
-    logger.info(
-        f"[Extractor] Done — {invoice.document_id} | "
-        f"vendor={invoice.vendor} | total={invoice.total_amount}"
-    )
+    invoice.status = ProcessingStatus.VALIDATING
+    invoice.timestamps.extraction_end = datetime.now(timezone.utc)
     return invoice
