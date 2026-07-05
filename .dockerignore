@@ -1,0 +1,10 @@
+ocr-pipeline-sa-key.json
+*.json
+*.pdf
+.git
+.gitignore
+__pycache__
+**/__pycache__
+*.pyc
+*.pyo
+.env

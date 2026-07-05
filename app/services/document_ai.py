@@ -18,7 +18,7 @@ from app.models.invoice import Invoice, OCRMeta, ProcessingStatus
 logger = logging.getLogger(__name__)
 
 
-# ── Client (module-level singleton) ───────────────────────────
+# ── Client (module-level singleton) ─────────────────────────────
 
 def _doc_ai_client() -> documentai.DocumentProcessorServiceClient:
     opts = {"api_endpoint": f"{LOCATION}-documentai.googleapis.com"}
@@ -37,7 +37,6 @@ def run_ocr(invoice: Invoice) -> Invoice:
     if not invoice.file_path:
         raise ValueError(f"Invoice {invoice.document_id} has no file_path set.")
 
-    # Mark start
     invoice.status = ProcessingStatus.OCR_START
     invoice.timestamps.ocr_start = datetime.now(timezone.utc)
     logger.info("[%s] OCR starting — file: %s", invoice.document_id, invoice.file_path)
@@ -48,7 +47,6 @@ def run_ocr(invoice: Invoice) -> Invoice:
         PROJECT_ID, LOCATION, PROCESSOR_ID, PROCESSOR_VERSION
     )
 
-    # Read raw bytes directly — no GCS required
     file_content = Path(invoice.file_path).read_bytes()
 
     raw_document = documentai.RawDocument(
@@ -72,10 +70,8 @@ def run_ocr(invoice: Invoice) -> Invoice:
         logger.error("[%s] Document AI call failed: %s", invoice.document_id, exc)
         return invoice
 
-    # Extract text and metadata directly from the response
     text = document.text or ""
 
-    # Audited: Calculate average token confidence instead of image quality
     confidences: list[float] = []
     for page in document.pages:
         for token in page.tokens:
