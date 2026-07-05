@@ -1,17 +1,37 @@
 steps:
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/ocr-pipeline', '.']
+    id: 'Build'
+    args: [build, --no-cache, -t, 'us-central1-docker.pkg.dev/$PROJECT_ID/invoice-processor/app:$BUILD_ID', .]
+
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/ocr-pipeline']
-  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Push'
+    args: [push, 'us-central1-docker.pkg.dev/$PROJECT_ID/invoice-processor/app:$BUILD_ID']
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'Deploy'
+    entrypoint: gcloud
     args:
-      - 'run'
-      - 'deploy'
-      - 'ocr-pipeline'
-      - '--image'
-      - 'gcr.io/$PROJECT_ID/ocr-pipeline'
-      - '--region'
-      - 'us-central1'
-      - '--platform'
-      - 'managed'
-      - '--allow-unauthenticated'
+      - run
+      - deploy
+      - ap-invoice-processor
+      - --image=us-central1-docker.pkg.dev/$PROJECT_ID/invoice-processor/app:$BUILD_ID
+      - --platform=managed
+      - --region=us-central1
+      - --port=8080
+      - --service-account=ocr-pipeline-sa@$PROJECT_ID.iam.gserviceaccount.com
+      - --set-env-vars=GCP_PROJECT_ID=$PROJECT_ID,GCP_LOCATION=us,GCP_REGION=us-central1,GCP_PROCESSOR_ID=813591c0e321b52b,GCS_INPUT_BUCKET=ocr-invoice-input-prod,GCS_OUTPUT_BUCKET=ocr-invoice-output-prod,GCS_OUTPUT_PREFIX=ocr-output/,APP_ENV=production,LOG_LEVEL=INFO
+      - --set-secrets=OPENAI_API_KEY=OPENAI_API_KEY:latest
+      - --allow-unauthenticated
+      - --memory=2Gi
+      - --cpu=2
+      - --timeout=300
+      - --min-instances=1
+      - --no-cpu-throttling 
+
+images:
+  - us-central1-docker.pkg.dev/$PROJECT_ID/invoice-processor/app:$BUILD_ID
+
+timeout: 1800s
+
+options:
+  logging: CLOUD_LOGGING_ONLY

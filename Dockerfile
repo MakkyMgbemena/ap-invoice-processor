@@ -19,8 +19,7 @@ COPY . .
 RUN chmod +x entrypoint.sh
 
 # FastAPI
-EXPOSE 8000
+EXPOSE 8080
 # Streamlit
-EXPOSE 8501
 
 ENTRYPOINT ["./entrypoint.sh"]

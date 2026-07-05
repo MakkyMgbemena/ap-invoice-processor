@@ -1,71 +1,65 @@
 import os
-from pathlib import Path
-from dotenv import load_dotenv
 
-load_dotenv()
+# ── GCP Core ──────────────────────────────────────────────────────────────────
+GCP_PROJECT_ID        = os.getenv("GCP_PROJECT_ID",        "project-24b04b3d-fdd9-4b07-855")
+GCP_LOCATION          = os.getenv("GCP_LOCATION",          "us")
+GCP_REGION            = os.getenv("GCP_REGION",            "us-central1")
 
-# ── GCP / Document AI ─────────────────────────────────────────
-PROJECT_ID        = os.getenv("GCP_PROJECT_ID", "your-project-id")
-LOCATION          = os.getenv("GCP_LOCATION", "us")
-PROCESSOR_ID      = os.getenv("GCP_PROCESSOR_ID", "your-processor-id")
-PROCESSOR_VERSION = os.getenv("GCP_PROCESSOR_VERSION", "stable")   # was "rc" — changed to stable
+# ── Document AI ───────────────────────────────────────────────────────────────
+GCP_PROCESSOR_ID      = os.getenv("GCP_PROCESSOR_ID",      "813591c0e321b52b")
+GCP_PROCESSOR_VERSION = os.getenv("GCP_PROCESSOR_VERSION", "stable")
 
-# ── Cloud Storage ──────────────────────────────────────────────
-INPUT_BUCKET  = os.getenv("GCS_INPUT_BUCKET", "your-input-bucket")
-OUTPUT_BUCKET = os.getenv("GCS_OUTPUT_BUCKET", "your-output-bucket")
-OUTPUT_PREFIX = "docai_output/"
+# ── Cloud Storage ─────────────────────────────────────────────────────────────
+GCS_INPUT_BUCKET      = os.getenv("GCS_INPUT_BUCKET",      "ocr-invoice-input-prod")
 
-# ── OpenAI ────────────────────────────────────────────────────
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_MODEL   = os.getenv("OPENAI_MODEL", "gpt-4o")
+# ── Service Account ───────────────────────────────────────────────────────────
+GOOGLE_APPLICATION_CREDENTIALS = os.getenv(
+    "GOOGLE_APPLICATION_CREDENTIALS", "/secrets/ocr-pipeline-sa-key.json"
+)
 
-# ── API settings ──────────────────────────────────────────────
-API_HOST = os.getenv("API_HOST", "0.0.0.0")
-API_PORT = int(os.getenv("API_PORT", "8000"))
-DEBUG    = os.getenv("DEBUG", "false").lower() == "true"
+# ── OpenAI ────────────────────────────────────────────────────────────────────
+OPENAI_API_KEY        = os.getenv("OPENAI_API_KEY")
+OPENAI_MODEL          = os.getenv("OPENAI_MODEL", "gpt-4o")
 
-# ── Local paths (dev only — gitignored in production) ─────────
-BASE_DIR       = Path(__file__).parent
-DATA_DIR       = BASE_DIR / "data"
-INPUT_DIR      = DATA_DIR / "input"
-OUTPUT_DIR     = DATA_DIR / "output"
-DOC_STORE_PATH = OUTPUT_DIR / "document_store.json"
+# ── App ───────────────────────────────────────────────────────────────────────
+APP_ENV               = os.getenv("APP_ENV",           "production")
+LOG_LEVEL             = os.getenv("LOG_LEVEL",         "INFO")
+MAX_FILE_SIZE_MB      = int(os.getenv("MAX_FILE_SIZE_MB", "20"))
 
-
-def init_dirs() -> None:
-    """Create local dev directories. Call once at app startup — never at import time."""
-    INPUT_DIR.mkdir(parents=True, exist_ok=True)
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+# ── Server ────────────────────────────────────────────────────────────────────
+API_HOST    = os.getenv("API_HOST", "0.0.0.0")
+API_PORT    = int(os.getenv("PORT", "8080"))
+DEBUG       = os.getenv("APP_ENV", "production") != "production"
 
 
 def validate_config() -> None:
-    errors = []
-
+    import logging
+    logger = logging.getLogger(__name__)
+    required = {"GCP_PROJECT_ID": GCP_PROJECT_ID, "GCP_PROCESSOR_ID": GCP_PROCESSOR_ID}
+    missing = [k for k, v in required.items() if not v]
+    if missing:
+        raise RuntimeError(f"Missing required config vars: {missing}")
     if not OPENAI_API_KEY:
-        errors.append("OPENAI_API_KEY is not set.")
+        logger.warning("[Config] OPENAI_API_KEY not set — AI features disabled.")
+    logger.info(f"[Config] {APP_ENV} | {GCP_REGION} | port {API_PORT}")
 
-    if PROJECT_ID == "your-project-id":
-        errors.append("GCP_PROJECT_ID is not set.")
 
-    if PROCESSOR_ID == "your-processor-id":
-        errors.append("GCP_PROCESSOR_ID is not set.")
+def init_dirs() -> None:
+    for d in ("/tmp/uploads", "/tmp/outputs"):
+        os.makedirs(d, exist_ok=True)
 
-    if INPUT_BUCKET == "your-input-bucket":
-        errors.append("GCS_INPUT_BUCKET is not set.")
+# ── Service aliases (used by services layer) ──────────────────────────────────
+PROJECT_ID        = GCP_PROJECT_ID
+LOCATION          = GCP_LOCATION
+PROCESSOR_ID      = GCP_PROCESSOR_ID
+PROCESSOR_VERSION = GCP_PROCESSOR_VERSION
+INPUT_BUCKET      = GCS_INPUT_BUCKET
 
-    if OUTPUT_BUCKET == "your-output-bucket":
-        errors.append("GCS_OUTPUT_BUCKET is not set.")
+# ── Output Storage ────────────────────────────────────────────────────────────
+OUTPUT_BUCKET  = os.getenv("GCS_OUTPUT_BUCKET", "ocr-invoice-output-prod")
+OUTPUT_PREFIX  = os.getenv("GCS_OUTPUT_PREFIX", "ocr-output/")
 
-    VALID_LOCATIONS = {"us", "eu"}
-    if LOCATION not in VALID_LOCATIONS:
-        errors.append(
-            f"GCP_LOCATION '{LOCATION}' is invalid. Must be 'us' or 'eu'."
-        )
-
-    if not PROCESSOR_VERSION or PROCESSOR_VERSION.strip() == "":
-        errors.append("GCP_PROCESSOR_VERSION is not set.")
-
-    if errors:
-        raise EnvironmentError(
-            "OCR Pipeline — missing required config:\n " + "\n ".join(errors)
-        )
+# ── Local Paths ───────────────────────────────────────────────────────────────
+from pathlib import Path
+INPUT_DIR      = Path(os.getenv("INPUT_DIR",      "/tmp/uploads"))
+DOC_STORE_PATH = Path(os.getenv("DOC_STORE_PATH", "/tmp/doc_store.json"))

@@ -172,6 +172,7 @@ OCR TEXT:
             messages=[{"role": "user", "content": prompt}],
             temperature=0,
             response_format={"type": "json_object"},
+            timeout=60
         )
         extracted = json.loads(response.choices[0].message.content)
         logger.info(f"[LLM] GPT-4o extraction complete — fields: {list(extracted.keys())}")
