@@ -35,7 +35,7 @@ from app.models import (
     InvoiceStatusResponse,
     InvoiceResultResponse,
 )
-from app.services.document_ai   import run_ocr, upload_to_gcs
+from app.services.document_ai   import run_ocr
 from app.services.llm_extractor import extract_invoice_fields
 from app.services.validator     import validate_invoice
 from app.utils.doc_checker      import check_document, DocCheckError
@@ -87,11 +87,6 @@ def _run_pipeline(invoice: Invoice) -> None:
     Errors at any stage are captured on the Invoice and persisted.
     """
     try:
-        # Stage 0: Ensure the PDF is uploaded to GCS before OCR.
-        if not invoice.gcs_input_uri:
-            invoice.gcs_input_uri = upload_to_gcs(invoice.file_path, invoice.document_id)
-            _upsert_invoice(invoice)
-
         # Stage 1: OCR
         invoice = run_ocr(invoice)
         _upsert_invoice(invoice)

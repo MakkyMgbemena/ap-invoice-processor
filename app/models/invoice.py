@@ -81,8 +81,6 @@ class Invoice(BaseModel):
     error:       ErrorMeta           = Field(default_factory=ErrorMeta)
 
     # ── GCS ──────────────────────────────────────────────────
-    gcs_input_uri:  Optional[str] = None
-    gcs_output_uri: Optional[str] = None
 
     # ── Extracted fields ──────────────────────────────────────
     recognized_text: Optional[str]         = None
