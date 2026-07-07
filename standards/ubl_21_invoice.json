@@ -1,0 +1,145 @@
+{
+  "standard": "UBL 2.1 Invoice",
+  "oasis_reference": "OASIS Standard — UBL 2.1, November 2013",
+  "source": "https://docs.oasis-open.org/ubl/os-UBL-2.1/",
+  "description": "Universal Business Language 2.1 — canonical schema for AP invoice field types, nullability rules, and forbidden token handling.",
+
+  "monetary_forbidden_tokens": [
+    "N/A", "n/a", "NA", "na",
+    "null", "Null", "NULL",
+    "nil", "Nil", "NIL",
+    "none", "None", "NONE",
+    "-", "--",
+    "TBD", "tbd",
+    ""
+  ],
+
+  "conversion_functions": ["_to_decimal", "Decimal"],
+
+  "fields": [
+    {
+      "python_field": "vendor",
+      "ubl_element": "PartyName",
+      "ubl_path": "cac:AccountingSupplierParty/cac:Party/cac:PartyName/cbc:Name",
+      "python_type": "str",
+      "required": true,
+      "guard_required": false,
+      "conversion_function": null,
+      "absent_value": null,
+      "notes": "Free-text supplier name. No monetary guard needed."
+    },
+    {
+      "python_field": "invoice_number",
+      "ubl_element": "ID",
+      "ubl_path": "cbc:ID",
+      "python_type": "str",
+      "required": true,
+      "guard_required": false,
+      "conversion_function": null,
+      "absent_value": null,
+      "notes": "Unique document identifier. Alphanumeric string, no conversion required."
+    },
+    {
+      "python_field": "invoice_date",
+      "ubl_element": "IssueDate",
+      "ubl_path": "cbc:IssueDate",
+      "python_type": "date",
+      "format": "YYYY-MM-DD",
+      "required": true,
+      "guard_required": false,
+      "conversion_function": null,
+      "absent_value": null,
+      "notes": "ISO 8601 date. Must be present on all valid invoices per UBL 2.1 Section 2.1."
+    },
+    {
+      "python_field": "due_date",
+      "ubl_element": "PaymentDueDate",
+      "ubl_path": "cac:PaymentMeans/cbc:PaymentDueDate",
+      "python_type": "date",
+      "format": "YYYY-MM-DD",
+      "required": false,
+      "guard_required": false,
+      "conversion_function": null,
+      "absent_value": null,
+      "notes": "Optional per UBL 2.1. Omit entirely if not present — do not emit null or N/A."
+    },
+    {
+      "python_field": "subtotal",
+      "ubl_element": "TaxExclusiveAmount",
+      "ubl_path": "cac:LegalMonetaryTotal/cbc:TaxExclusiveAmount",
+      "python_type": "Decimal",
+      "required": false,
+      "guard_required": true,
+      "conversion_function": "_to_decimal",
+      "absent_value": null,
+      "notes": "Optional per UBL 2.1. If present must be a valid Decimal. Forbidden tokens must map to null — never passed raw to Decimal()."
+    },
+    {
+      "python_field": "tax",
+      "ubl_element": "TaxAmount",
+      "ubl_path": "cac:TaxTotal/cbc:TaxAmount",
+      "python_type": "Decimal",
+      "required": false,
+      "guard_required": true,
+      "conversion_function": "_to_decimal",
+      "absent_value": null,
+      "notes": "Optional per UBL 2.1. Zero-tax invoices must use 0.00 — not null, not N/A. Forbidden tokens must be intercepted before Decimal() call."
+    },
+    {
+      "python_field": "total_amount",
+      "ubl_element": "PayableAmount",
+      "ubl_path": "cac:LegalMonetaryTotal/cbc:PayableAmount",
+      "python_type": "Decimal",
+      "required": true,
+      "guard_required": true,
+      "conversion_function": "_to_decimal",
+      "absent_value": null,
+      "notes": "Mandatory per UBL 2.1 Section 2.4. Must always be a valid Decimal. No forbidden tokens permitted under any circumstance."
+    },
+    {
+      "python_field": "currency",
+      "ubl_element": "DocumentCurrencyCode",
+      "ubl_path": "cbc:DocumentCurrencyCode",
+      "python_type": "str",
+      "format": "ISO 4217",
+      "required": true,
+      "guard_required": false,
+      "conversion_function": null,
+      "absent_value": null,
+      "notes": "Must be a valid ISO 4217 3-letter code (e.g. CAD, USD, EUR)."
+    },
+    {
+      "python_field": "line_items.quantity",
+      "ubl_element": "InvoicedQuantity",
+      "ubl_path": "cac:InvoiceLine/cbc:InvoicedQuantity",
+      "python_type": "Decimal",
+      "required": true,
+      "guard_required": true,
+      "conversion_function": "_to_decimal",
+      "absent_value": null,
+      "notes": "Per-line quantity. Must be numeric. Forbidden tokens must be caught before Decimal()."
+    },
+    {
+      "python_field": "line_items.unit_price",
+      "ubl_element": "PriceAmount",
+      "ubl_path": "cac:InvoiceLine/cac:Price/cbc:PriceAmount",
+      "python_type": "Decimal",
+      "required": true,
+      "guard_required": true,
+      "conversion_function": "_to_decimal",
+      "absent_value": null,
+      "notes": "Per-line unit price. Must be a valid Decimal. Forbidden tokens must be intercepted."
+    },
+    {
+      "python_field": "line_items.total",
+      "ubl_element": "LineExtensionAmount",
+      "ubl_path": "cac:InvoiceLine/cbc:LineExtensionAmount",
+      "python_type": "Decimal",
+      "required": true,
+      "guard_required": true,
+      "conversion_function": "_to_decimal",
+      "absent_value": null,
+      "notes": "Per-line extended amount (qty x unit_price). Must be a valid Decimal. No forbidden tokens permitted."
+    }
+  ]
+}

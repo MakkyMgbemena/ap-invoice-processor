@@ -1,0 +1,36 @@
+{
+  "standard": "PEPPOL BIS Billing 3.0",
+  "peppol_reference": "OpenPEPPOL AISBL — BIS Billing 3.0, Release 3.0.20, November 2025",
+  "cen_reference": "CEN EN16931-1 — Schematron 1.3.15, 2025-10-16",
+  "source": "https://docs.peppol.eu/poacc/billing/3.0/",
+  "description": "PEPPOL BIS Billing 3.0 business rules layered on UBL 2.1 via CEN EN16931. Governs mandatory fields, arithmetic integrity, conditional requirements, and empty element prohibition.",
+  "monetary_forbidden_tokens": [
+    "N/A", "n/a", "NA", "na", "null", "Null", "NULL",
+    "nil", "Nil", "NIL", "none", "None", "NONE",
+    "-", "--", "TBD", "tbd", ""
+  ],
+  "conversion_functions": ["_to_decimal", "Decimal"],
+  "business_rules": [
+    { "rule_id": "BR-01", "source": "CEN-EN16931-UBL.sch", "severity": "fatal", "field": "customization_id", "ubl_element": "CustomizationID", "ubl_path": "cbc:CustomizationID", "condition": "required_always", "message": "An Invoice shall have a Specification identifier (BT-24). Must not be blank." },
+    { "rule_id": "BR-02", "source": "CEN-EN16931-UBL.sch", "severity": "fatal", "field": "invoice_number", "ubl_element": "ID", "ubl_path": "cbc:ID", "condition": "required_always", "message": "An Invoice shall have an Invoice number (BT-1). Must not be blank." },
+    { "rule_id": "BR-03", "source": "CEN-EN16931-UBL.sch", "severity": "fatal", "field": "invoice_date", "ubl_element": "IssueDate", "ubl_path": "cbc:IssueDate", "condition": "required_always", "message": "An Invoice shall have an Invoice issue date (BT-2). Must not be blank." },
+    { "rule_id": "BR-04", "source": "CEN-EN16931-UBL.sch", "severity": "fatal", "field": "invoice_type_code", "ubl_element": "InvoiceTypeCode", "ubl_path": "cbc:InvoiceTypeCode", "condition": "required_always", "message": "An Invoice shall have an Invoice type code (BT-3). Must not be blank." },
+    { "rule_id": "BR-05", "source": "CEN-EN16931-UBL.sch", "severity": "fatal", "field": "currency", "ubl_element": "DocumentCurrencyCode", "ubl_path": "cbc:DocumentCurrencyCode", "condition": "required_always", "message": "An Invoice shall have an Invoice currency code (BT-5). Must be a valid ISO 4217 code." },
+    { "rule_id": "BR-06", "source": "CEN-EN16931-UBL.sch", "severity": "fatal", "field": "vendor", "ubl_element": "RegistrationName", "ubl_path": "cac:AccountingSupplierParty/cac:Party/cac:PartyLegalEntity/cbc:RegistrationName", "condition": "required_always", "message": "An Invoice shall contain the Seller name (BT-27). Must not be blank." },
+    { "rule_id": "BR-16", "source": "CEN-EN16931-UBL.sch", "severity": "fatal", "field": "line_items", "ubl_element": "InvoiceLine", "ubl_path": "cac:InvoiceLine", "condition": "at_least_one", "message": "An Invoice shall have at least one Invoice line (BG-25)." },
+    { "rule_id": "BR-22", "source": "CEN-EN16931-UBL.sch", "severity": "fatal", "field": "line_items.quantity", "ubl_element": "InvoicedQuantity", "ubl_path": "cac:InvoiceLine/cbc:InvoicedQuantity", "condition": "required_per_line", "message": "Each Invoice line shall have an Invoiced quantity (BT-129)." },
+    { "rule_id": "BR-24", "source": "CEN-EN16931-UBL.sch", "severity": "fatal", "field": "line_items.total", "ubl_element": "LineExtensionAmount", "ubl_path": "cac:InvoiceLine/cbc:LineExtensionAmount", "condition": "required_per_line", "message": "Each Invoice line shall have an Invoice line net amount (BT-131)." },
+    { "rule_id": "BR-26", "source": "CEN-EN16931-UBL.sch", "severity": "fatal", "field": "line_items.unit_price", "ubl_element": "PriceAmount", "ubl_path": "cac:InvoiceLine/cac:Price/cbc:PriceAmount", "condition": "required_per_line", "message": "Each Invoice line shall contain the Item net price (BT-146). Must not be negative." },
+    { "rule_id": "BR-CO-15", "source": "CEN-EN16931-UBL.sch", "severity": "fatal", "field": "total_amount", "ubl_element": "TaxInclusiveAmount", "condition": "arithmetic", "formula": "TaxInclusiveAmount = TaxExclusiveAmount + TaxAmount", "message": "Invoice total amount with VAT (BT-112) = Invoice total without VAT (BT-109) + Invoice total VAT amount (BT-110)." },
+    { "rule_id": "BR-CO-16", "source": "CEN-EN16931-UBL.sch", "severity": "fatal", "field": "total_amount", "ubl_element": "PayableAmount", "condition": "arithmetic", "formula": "PayableAmount = TaxInclusiveAmount - PrepaidAmount + RoundingAmount", "message": "Amount due for payment (BT-115) = Invoice total with VAT (BT-112) - Paid amount (BT-113) + Rounding amount (BT-114)." },
+    { "rule_id": "BR-DEC-23", "source": "CEN-EN16931-UBL.sch", "severity": "fatal", "field": "line_items.total", "ubl_element": "LineExtensionAmount", "condition": "decimal_precision", "max_decimals": 2, "message": "Maximum 2 decimal places for Invoice line net amount (BT-131)." },
+    { "rule_id": "BR-DEC-18", "source": "CEN-EN16931-UBL.sch", "severity": "fatal", "field": "total_amount", "ubl_element": "PayableAmount", "condition": "decimal_precision", "max_decimals": 2, "message": "Maximum 2 decimal places for Amount due for payment (BT-115)." },
+    { "rule_id": "PEPPOL-EN16931-R001", "source": "PEPPOL.sch", "severity": "fatal", "field": "profile_id", "ubl_element": "ProfileID", "ubl_path": "cbc:ProfileID", "condition": "required_always", "message": "Business process MUST be provided (cbc:ProfileID). Format: urn:fdc:peppol.eu:2017:poacc:billing:NN:1.0." },
+    { "rule_id": "PEPPOL-EN16931-R003", "source": "PEPPOL.sch", "severity": "fatal", "field": "buyer_reference", "ubl_element": "BuyerReference", "ubl_path": "cbc:BuyerReference", "condition": "required_one_of", "alternate_field": "cac:OrderReference/cbc:ID", "message": "A buyer reference (BT-10) or purchase order reference (BT-13) MUST be provided." },
+    { "rule_id": "PEPPOL-EN16931-R008", "source": "PEPPOL.sch", "severity": "fatal", "field": "all_fields", "ubl_element": "*", "condition": "no_empty_elements", "message": "Document MUST NOT contain empty elements. Directly enforces the monetary_forbidden_tokens list." },
+    { "rule_id": "PEPPOL-EN16931-R010", "source": "PEPPOL.sch", "severity": "fatal", "field": "buyer_endpoint", "ubl_element": "EndpointID", "ubl_path": "cac:AccountingCustomerParty/cac:Party/cbc:EndpointID", "condition": "required_always", "message": "Buyer electronic address (BT-49) MUST be provided." },
+    { "rule_id": "PEPPOL-EN16931-R020", "source": "PEPPOL.sch", "severity": "fatal", "field": "seller_endpoint", "ubl_element": "EndpointID", "ubl_path": "cac:AccountingSupplierParty/cac:Party/cbc:EndpointID", "condition": "required_always", "message": "Seller electronic address MUST be provided." },
+    { "rule_id": "PEPPOL-EN16931-R051", "source": "PEPPOL.sch", "severity": "fatal", "field": "currency", "ubl_element": "DocumentCurrencyCode", "condition": "currency_consistency", "message": "All currencyID attributes must match the invoice currency code (BT-5), except BT-111." },
+    { "rule_id": "PEPPOL-EN16931-R120", "source": "PEPPOL.sch", "severity": "fatal", "field": "line_items.total", "ubl_element": "LineExtensionAmount", "condition": "arithmetic", "formula": "LineExtensionAmount = InvoicedQuantity * (PriceAmount / BaseQuantity) + sum(line_charges) - sum(line_allowances)", "message": "Invoice line net amount MUST equal quantity * (net price / base qty) + line charges - line allowances." }
+  ]
+}

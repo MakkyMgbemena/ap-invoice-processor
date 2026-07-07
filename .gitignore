@@ -50,3 +50,5 @@ htmlcov/
 ocr-pipeline-sa-key.json
 *.json
 *.pdf
+!standards/
+!standards/*.json
