@@ -64,7 +64,13 @@ def _clean(text: str) -> str:
 def _to_decimal(raw) -> Decimal | None:
     if raw is None or raw == "":
         return None
-    return Decimal(str(raw).replace(",", "")).quantize(Decimal("0.01"))
+    try:
+        cleaned = str(raw).replace(",", "").replace("$", "").strip()
+        if not cleaned or cleaned.lower() in ("n/a", "none", "null", "-", "na"):
+            return None
+        return Decimal(cleaned).quantize(Decimal("0.01"))
+    except Exception:
+        return None
 
 
 def _parse_line_items(raw_text: str) -> list[LineItem]:
@@ -120,9 +126,9 @@ def parse_with_regex(raw_text: str) -> dict:
         "invoice_number": _find_field(raw_text, _INV_NUM_RE),
         "invoice_date":   _find_field(raw_text, _DATE_RE),
         "due_date":       _find_field(raw_text, _DUE_DATE_RE),
-        "total_amount":   _to_decimal(_find_field(raw_text, _TOTAL_RE)),
-        "subtotal":       _to_decimal(_find_field(raw_text, _SUBTOTAL_RE)),
-        "tax":            _to_decimal(_find_field(raw_text, _TAX_RE)),
+        "total_amount":   _to_decimal(v) if (v := _find_field(raw_text, _TOTAL_RE)) not in (None, "") else None,
+        "subtotal":       _to_decimal(v) if (v := _find_field(raw_text, _SUBTOTAL_RE)) not in (None, "") else None,
+        "tax":            _to_decimal(v) if (v := _find_field(raw_text, _TAX_RE)) not in (None, "") else None,
         "line_items":     line_items,
     }
 
@@ -216,9 +222,9 @@ def extract_invoice_fields(invoice: Invoice) -> Invoice:
     invoice.invoice_number = final_data.get("invoice_number")
     invoice.invoice_date   = final_data.get("invoice_date")
     invoice.due_date       = final_data.get("due_date")
-    invoice.subtotal       = _to_decimal(final_data.get("subtotal"))
-    invoice.tax            = _to_decimal(final_data.get("tax"))
-    invoice.total_amount   = _to_decimal(final_data.get("total_amount"))
+    invoice.subtotal       = _to_decimal(v) if (v := final_data.get("subtotal")) not in (None, "") else None
+    invoice.tax            = _to_decimal(v) if (v := final_data.get("tax")) not in (None, "") else None
+    invoice.total_amount   = _to_decimal(v) if (v := final_data.get("total_amount")) not in (None, "") else None
     invoice.currency       = final_data.get("currency")
     invoice.line_items     = final_data.get("line_items") or []
 
