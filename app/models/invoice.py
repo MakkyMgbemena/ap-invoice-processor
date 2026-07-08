@@ -26,6 +26,11 @@ class ValidationFlag(str, Enum):
     WARNING = "warning"
     FAIL    = "fail"
 
+class ApprovalStatus(str, Enum):
+    PENDING  = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
 
 # ── Sub-models ────────────────────────────────────────────────
 
@@ -80,6 +85,8 @@ class Invoice(BaseModel):
     file_name:   str
     file_path:   Optional[str]       = None
     status:      ProcessingStatus    = ProcessingStatus.INGESTED
+    approval_status: ApprovalStatus  = ApprovalStatus.PENDING
+    approval_at:     Optional[datetime] = None
     timestamps:  Timestamps          = Field(default_factory=Timestamps)
     ocr:         OCRMeta             = Field(default_factory=OCRMeta)
     error:       ErrorMeta           = Field(default_factory=ErrorMeta)
@@ -103,19 +110,19 @@ class Invoice(BaseModel):
 
     @model_validator(mode="after")
     def line_items_match_total(self) -> "Invoice":
-        if not self.line_items or self.total_amount is None:
+        if not self.line_items or self.subtotal is None:
             return self
         calculated = sum(
             Decimal(str(i.total)) for i in self.line_items
         ).quantize(Decimal("0.01"))
-        declared = Decimal(str(self.total_amount)).quantize(Decimal("0.01"))
+        declared = Decimal(str(self.subtotal)).quantize(Decimal("0.01"))
         if calculated != declared:
             self.validation = ValidationResult(
                 flag=ValidationFlag.FAIL,
                 score=0.0,
                 issues=[
                     f"Line items sum to {calculated}, "
-                    f"but total_amount is {declared}. "
+                    f"but subtotal is {declared}. "
                     f"Delta: {abs(declared - calculated)}"
                 ],
             )

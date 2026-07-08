@@ -63,3 +63,11 @@ OUTPUT_PREFIX  = os.getenv("GCS_OUTPUT_PREFIX", "ocr-output/")
 from pathlib import Path
 INPUT_DIR      = Path(os.getenv("INPUT_DIR",      "/tmp/uploads"))
 DOC_STORE_PATH = Path(os.getenv("DOC_STORE_PATH", "/tmp/doc_store.json"))
+
+# ── Email Notification ────────────────────────────────────────────────────────
+SMTP_HOST     = os.getenv("SMTP_HOST",     "smtp.gmail.com")
+SMTP_PORT     = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER     = os.getenv("SMTP_USER",     "")   # your Gmail address
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")   # Gmail App Password
+NOTIFY_EMAIL  = os.getenv("NOTIFY_EMAIL",  "")   # who receives the alert
+BASE_URL      = os.getenv("BASE_URL",      "http://localhost:8082")

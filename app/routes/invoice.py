@@ -1,3 +1,4 @@
+from app.services.sheets import log_status_change
 """
 app.routes.invoice
 ------------------
@@ -25,7 +26,10 @@ import asyncio
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
+from datetime import datetime, timezone
+from app.services.email_notifier import send_invoice_notification
+from app.services.quickbooks import push_to_quickbooks
 
 from app.config import INPUT_DIR, DOC_STORE_PATH
 from app.models import (
@@ -99,6 +103,9 @@ def _run_pipeline(invoice: Invoice) -> None:
         invoice = validate_invoice(invoice)
         _upsert_invoice(invoice)
 
+        # Stage 4: Email notification
+        send_invoice_notification(invoice)
+
         logger.info(f"[Pipeline] ✅ Completed — {invoice.document_id}")
 
     except Exception as e:
@@ -110,6 +117,36 @@ def _run_pipeline(invoice: Invoice) -> None:
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
+
+
+def _confirmation_page(title: str, message: str, color: str) -> HTMLResponse:
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{title}</title>
+        <style>
+            body {{ font-family: -apple-system, sans-serif; display: flex; align-items: center;
+                   justify-content: center; min-height: 100vh; margin: 0; background: #f5f5f5; }}
+            .card {{ background: white; border-radius: 12px; padding: 48px; text-align: center;
+                     box-shadow: 0 4px 24px rgba(0,0,0,0.08); max-width: 420px; width: 90%; }}
+            .icon {{ font-size: 64px; margin-bottom: 16px; }}
+            h1 {{ color: {color}; margin: 0 0 12px; font-size: 28px; }}
+            p {{ color: #666; font-size: 16px; margin: 0; }}
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="icon">{"✅" if color == "#16a34a" else "❌"}</div>
+            <h1>{title}</h1>
+            <p>{message}</p>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html)
 
 @router.post(
     "/upload",
@@ -185,7 +222,7 @@ async def get_invoice_status(document_id: str):
     if not record:
         raise HTTPException(status_code=404, detail=f"Invoice not found: {document_id}")
 
-    invoice = Invoice(**record)
+    invoice = Invoice.model_construct(**record)
     return InvoiceStatusResponse(
         document_id=invoice.document_id,
         status=invoice.status,
@@ -208,7 +245,7 @@ async def get_invoice_results(document_id: str):
     if not record:
         raise HTTPException(status_code=404, detail=f"Invoice not found: {document_id}")
 
-    invoice = Invoice(**record)
+    invoice = Invoice.model_construct(**record)
 
     if invoice.status not in (ProcessingStatus.COMPLETED, ProcessingStatus.FAILED):
         raise HTTPException(
@@ -264,3 +301,48 @@ async def list_invoices(
     ]
 
     return JSONResponse(content={"count": len(summaries), "invoices": summaries})
+
+
+# ── Approval endpoints ────────────────────────────────────────────────────────
+
+@router.get("/{document_id}/approve", response_class=HTMLResponse, tags=["Approvals"])
+async def approve_invoice(document_id: str):
+    """One-click approval from email link."""
+    record = _get_invoice(document_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    invoice = Invoice.model_construct(**record)
+    invoice.approval_status = "approved"
+    qb_result = await push_to_quickbooks(invoice)
+    invoice.qb_bill_id = qb_result.get("qb_bill_id")
+    invoice.qb_status = "synced" if qb_result["success"] else "failed"
+    invoice.approval_at     = datetime.now(timezone.utc)
+    _upsert_invoice(invoice)
+    return """
+    <html><body style='font-family:Arial,sans-serif;text-align:center;padding:80px;background:#f9fafb;'>
+      <div style='max-width:400px;margin:auto;background:#fff;padding:40px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.08);'>
+        <h1 style='color:#16a34a;'>✅ Approved</h1>
+        <p style='color:#64748b;'>Invoice has been approved and is queued for ERP submission.</p>
+        <p style='color:#94a3b8;font-size:0.85em;'>You can close this tab.</p>
+      </div>
+    </body></html>"""
+
+
+@router.get("/{document_id}/reject", response_class=HTMLResponse, tags=["Approvals"])
+async def reject_invoice(document_id: str):
+    """One-click rejection from email link."""
+    record = _get_invoice(document_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    invoice = Invoice.model_construct(**record)
+    invoice.approval_status = "rejected"
+    invoice.approval_at     = datetime.now(timezone.utc)
+    _upsert_invoice(invoice)
+    return """
+    <html><body style='font-family:Arial,sans-serif;text-align:center;padding:80px;background:#f9fafb;'>
+      <div style='max-width:400px;margin:auto;background:#fff;padding:40px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.08);'>
+        <h1 style='color:#dc2626;'>❌ Rejected</h1>
+        <p style='color:#64748b;'>Invoice has been marked as rejected. No further action will be taken.</p>
+        <p style='color:#94a3b8;font-size:0.85em;'>You can close this tab.</p>
+      </div>
+    </body></html>"""
