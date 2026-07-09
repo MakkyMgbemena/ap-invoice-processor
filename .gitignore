@@ -52,3 +52,5 @@ ocr-pipeline-sa-key.json
 *.pdf
 !standards/
 !standards/*.json
+qb_oauth.py
+setup_env.py
