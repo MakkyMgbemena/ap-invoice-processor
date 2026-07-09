@@ -81,7 +81,7 @@ with st.expander("📤 Upload New Invoice", expanded=not invoices):
             with st.spinner("Extracting data & validating..."):
                 try:
                     r = requests.post(
-                        f"{API_URL}/upload",
+                        f"{API_URL}/invoices/upload",
                         files={"file": (uploaded.name, uploaded.getvalue(), uploaded.type)},
                         timeout=60,
                     )
@@ -114,18 +114,18 @@ if not filtered:
     st.info("No invoices found. Upload one above.")
 else:
     for inv in sorted(filtered, key=lambda x: x.get("created_at",""), reverse=True):
-        inv_id  = inv.get("id", "")
-        vendor  = inv.get("vendor_name") or inv.get("vendor") or "Unknown Vendor"
-        amount  = float(inv.get("total_amount", 0) or 0)
-        curr    = inv.get("currency", "CAD")
-        status  = inv.get("status", "pending")
-        fname   = inv.get("filename", "")
-        score   = inv.get("validation_score") or inv.get("score")
-        qb_id   = inv.get("qb_bill_id", "")
-        inv_num = inv.get("invoice_number") or inv.get("invoice_no") or "—"
-        inv_dt  = inv.get("invoice_date") or inv.get("date") or "—"
+        inv_id = inv.get("document_id", "")
+        vendor = inv.get("vendor") or "Unknown Vendor"
+        amount = float(inv.get("total_amount", 0) or 0)
+        curr = inv.get("currency", "CAD")
+        status = inv.get("status", "pending")
+        fname = inv.get("file_name", "")
+        score = inv.get("validation_score") or inv.get("score")
+        qb_id = inv.get("qb_bill_id", "")
+        inv_num = inv.get("invoice_number") or "—"
+        inv_dt = inv.get("invoice_date") or "—"
 
-        status_emoji = {"approved": "✅", "rejected": "❌", "pending": "⏳"}.get(status, "⏳")
+        status_emoji = {"approved": "✅", "rejected": "❌", "pending": "⏳", "ingested": "⏳", "completed": "✅", "failed": "❌"}.get(status, "⏳")
         qb_badge = f"🔵 QB: {qb_id[:12]}..." if qb_id and not str(qb_id).startswith("MOCK") else ("🟡 Mock" if str(qb_id).startswith("MOCK") else "⬜ Not synced")
 
         with st.container(border=True):

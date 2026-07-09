@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 
 # ── GCP Core ──────────────────────────────────────────────────────────────────
 GCP_PROJECT_ID        = os.getenv("GCP_PROJECT_ID",        "project-24b04b3d-fdd9-4b07-855")
@@ -61,6 +62,8 @@ OUTPUT_PREFIX  = os.getenv("GCS_OUTPUT_PREFIX", "ocr-output/")
 
 # ── Local Paths ───────────────────────────────────────────────────────────────
 from pathlib import Path
+
+load_dotenv()
 INPUT_DIR      = Path(os.getenv("INPUT_DIR",      "/tmp/uploads"))
 DOC_STORE_PATH = Path(os.getenv("DOC_STORE_PATH", "/tmp/doc_store.json"))
 
