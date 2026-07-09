@@ -4,7 +4,7 @@ import requests
 import pandas as pd
 from datetime import datetime
 
-API_URL = os.environ.get("API_URL", "http://api:8080")
+API_URL = os.environ.get("API_URL", "http://localhost:8080")
 
 st.set_page_config(
     page_title="AP Invoice Processor",
@@ -14,7 +14,7 @@ st.set_page_config(
 
 import os
 
-API_URL = os.environ.get("API_URL", "http://api:8080")
+API_URL = os.environ.get("API_URL", "http://localhost:8080")
 
 # ── Header ────────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -42,7 +42,7 @@ def fetch_invoices():
     try:
         r = requests.get(f"{API_URL}/invoices/", timeout=5)
         r.raise_for_status()
-        return r.json()
+        return r.json().get("invoices", [])
     except Exception as e:
         st.error(f"Cannot reach API: {e}")
         return []
