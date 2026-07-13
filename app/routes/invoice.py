@@ -296,6 +296,10 @@ async def list_invoices(
             "total_amount": r.get("total_amount"),
             "vendor":       r.get("vendor"),
             "flag":         r.get("validation", {}).get("flag") if r.get("validation") else None,
+            "approval_status": r.get("approval_status"),
+            "approval_at":     r.get("approval_at"),
+            "qb_bill_id":      r.get("qb_bill_id"),
+            "qb_status":       r.get("qb_status"),
         }
         for r in store[:limit]
     ]
@@ -318,6 +322,17 @@ async def approve_invoice(document_id: str):
     invoice.qb_status = "synced" if qb_result["success"] else "failed"
     invoice.approval_at     = datetime.now(timezone.utc)
     _upsert_invoice(invoice)
+    log_status_change(
+        invoice_id=invoice.document_id,
+        filename=invoice.file_name,
+        vendor=invoice.vendor or "",
+        amount=float(invoice.total_amount or 0),
+        currency=invoice.currency or "CAD",
+        old_status="pending",
+        new_status="approved",
+        qb_bill_id=invoice.qb_bill_id or "",
+        notes=qb_result.get("message", ""),
+    )
     return """
     <html><body style='font-family:Arial,sans-serif;text-align:center;padding:80px;background:#f9fafb;'>
       <div style='max-width:400px;margin:auto;background:#fff;padding:40px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.08);'>
@@ -338,6 +353,16 @@ async def reject_invoice(document_id: str):
     invoice.approval_status = "rejected"
     invoice.approval_at     = datetime.now(timezone.utc)
     _upsert_invoice(invoice)
+    log_status_change(
+        invoice_id=invoice.document_id,
+        filename=invoice.file_name,
+        vendor=invoice.vendor or "",
+        amount=float(invoice.total_amount or 0),
+        currency=invoice.currency or "CAD",
+        old_status="pending",
+        new_status="rejected",
+        notes="Rejected by approver",
+    )
     return """
     <html><body style='font-family:Arial,sans-serif;text-align:center;padding:80px;background:#f9fafb;'>
       <div style='max-width:400px;margin:auto;background:#fff;padding:40px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.08);'>

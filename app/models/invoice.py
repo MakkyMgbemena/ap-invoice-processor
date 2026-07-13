@@ -87,6 +87,8 @@ class Invoice(BaseModel):
     status:      ProcessingStatus    = ProcessingStatus.INGESTED
     approval_status: ApprovalStatus  = ApprovalStatus.PENDING
     approval_at:     Optional[datetime] = None
+    qb_bill_id:      Optional[str] = None
+    qb_status:       Optional[str] = None
     timestamps:  Timestamps          = Field(default_factory=Timestamps)
     ocr:         OCRMeta             = Field(default_factory=OCRMeta)
     error:       ErrorMeta           = Field(default_factory=ErrorMeta)

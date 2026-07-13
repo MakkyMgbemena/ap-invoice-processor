@@ -27,7 +27,7 @@ services:
       dockerfile: Dockerfile.streamlit
     container_name: ap-invoice-processor-streamlit-1
     ports:
-      - "8501:8501"
+      - "8502:8501"
     environment:
       - API_URL=http://api:8080
     depends_on:

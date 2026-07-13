@@ -5,7 +5,7 @@
 *.key
 service-account*.json
 credentials*.json
-
+qb.tokens.json
 # ── Local data (dev only) ─────────────────────────────────────
 data/
 sample_invoices/
