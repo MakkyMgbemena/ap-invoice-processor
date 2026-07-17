@@ -150,7 +150,9 @@ else:
                     st.markdown(qb_badge)
 
             with row2[1]:
-                if approval_status == "pending":
+                is_completed = status == "completed"
+
+                if approval_status == "pending" and is_completed:
                     btn_a, btn_r = st.columns(2)
                     with btn_a:
                         if st.button("✅ Approve", key=f"a_{inv_id}", use_container_width=True):
@@ -168,6 +170,8 @@ else:
                                 st.rerun()
                             except Exception as e:
                                 st.error(str(e))
+                elif approval_status == "pending":
+                    st.caption("Waiting for extraction to complete")
                 else:
                     st.caption("Action complete")
 

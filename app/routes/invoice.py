@@ -316,6 +316,13 @@ async def approve_invoice(document_id: str):
     if not record:
         raise HTTPException(status_code=404, detail="Invoice not found")
     invoice = Invoice.model_construct(**record)
+
+    if invoice.status != ProcessingStatus.COMPLETED:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Invoice must be completed before approval. Current status: {invoice.status}",
+        )
+
     invoice.approval_status = "approved"
     qb_result = await push_to_quickbooks(invoice)
     invoice.qb_bill_id = qb_result.get("qb_bill_id")
